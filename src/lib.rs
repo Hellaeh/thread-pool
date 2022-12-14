@@ -1,5 +1,4 @@
-#![feature(trait_alias)]
-#![feature(generators)]
+#![feature(trait_alias, generators)]
 
-mod thread_pool;
+pub mod thread_pool;
 mod utils;

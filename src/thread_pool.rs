@@ -17,7 +17,7 @@ pub struct ThreadPool {
 
 impl ThreadPool {
 	pub fn new() -> Self {
-		Self::with_capacity(optimal_number_of_threads(u16::MAX))
+		Self::default()
 	}
 
 	pub fn with_capacity(capacity: u16) -> Self {
@@ -55,6 +55,12 @@ impl Drop for ThreadPool {
 		for _ in 0..self.capacity() {
 			self.sender.send(Task::Exit).unwrap()
 		}
+	}
+}
+
+impl Default for ThreadPool {
+	fn default() -> Self {
+		Self::with_capacity(optimal_number_of_threads(u16::MAX))
 	}
 }
 
