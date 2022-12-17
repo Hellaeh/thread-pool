@@ -1,7 +1,7 @@
 mod worker;
 
 use std::sync::{
-	mpsc::{channel, Sender},
+	mpsc::{self, Sender},
 	Arc, Mutex,
 };
 
@@ -23,7 +23,7 @@ impl ThreadPool {
 	pub fn with_capacity(capacity: u16) -> Self {
 		let mut _workers = Vec::with_capacity(capacity as usize);
 
-		let (sender, receiver) = channel();
+		let (sender, receiver) = mpsc::channel();
 
 		let receiver = Arc::new(Mutex::new(receiver));
 
@@ -42,10 +42,7 @@ impl ThreadPool {
 		self.capacity
 	}
 
-	pub fn execute<T>(&self, f: T)
-	where
-		T: Job,
-	{
+	pub fn execute<T: Job>(&self, f: T) {
 		self.sender.send(Task::New(Box::new(f))).unwrap()
 	}
 }
@@ -81,19 +78,12 @@ mod test {
 	fn loops() {
 		let thread_pool = ThreadPool::new();
 
-		let mut i = 0;
-		let work = move || loop {
-			if i >= 1e6 as u32 {
-				break;
-			}
-
-			i += 1;
+		let work = move |n: u16| {
+			for _ in 0..1_000_000 {}
 		};
 
-		for _ in 0..thread_pool.capacity() {
-			thread_pool.execute(work)
+		for i in 0..thread_pool.capacity() {
+			thread_pool.execute(move || work(i))
 		}
-
-		thread_pool.execute(|| assert!(true))
 	}
 }

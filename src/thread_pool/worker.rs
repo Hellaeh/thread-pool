@@ -18,9 +18,12 @@ pub struct Worker {
 
 impl Worker {
 	pub fn new(id: u16, receiver: Arc<Mutex<Receiver<Task>>>) -> Self {
-		let handle = thread::spawn(move || {
-			while let Task::New(job) = receiver.lock().unwrap().recv().unwrap() {
-				job();
+		let handle = thread::spawn(move || loop {
+			let task = { receiver.lock().unwrap().recv().unwrap() };
+
+			match task {
+				Task::New(job) => job(),
+				_ => break,
 			}
 		});
 
