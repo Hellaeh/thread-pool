@@ -23,7 +23,7 @@ impl Worker {
 
 			match task {
 				Task::New(job) => job(),
-				_ => break,
+				Task::Exit => break,
 			}
 		});
 

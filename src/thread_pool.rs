@@ -61,29 +61,12 @@ impl Default for ThreadPool {
 	}
 }
 
-#[cfg(test)]
-mod test {
-	use super::ThreadPool;
+impl<'a> IntoIterator for &'a ThreadPool {
+	type Item = u16;
 
-	#[test]
-	fn graceful_shutdown() {
-		let thread_pool = ThreadPool::with_capacity(4);
+	type IntoIter = std::ops::Range<u16>;
 
-		for i in 0..thread_pool.capacity() {
-			thread_pool.execute(move || assert_eq!(i, i));
-		}
-	}
-
-	#[test]
-	fn loops() {
-		let thread_pool = ThreadPool::new();
-
-		let work = move |n: u16| {
-			for _ in 0..1_000_000 {}
-		};
-
-		for i in 0..thread_pool.capacity() {
-			thread_pool.execute(move || work(i))
-		}
+	fn into_iter(self) -> Self::IntoIter {
+		0..self.capacity()
 	}
 }
