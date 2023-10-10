@@ -7,28 +7,32 @@ use std::sync::{
 
 use crate::utils::optimal_number_of_threads;
 
-use self::worker::{Job, Task, Worker};
+use self::worker::{Task, Worker};
 
+///
+#[derive(Debug)]
 pub struct ThreadPool {
 	_workers: Vec<Worker>,
 	sender: Sender<Task>,
-	capacity: u16,
+	capacity: usize,
 }
 
 impl ThreadPool {
+	/// Will return [`ThreadPool`] with `capacity = num of cpu`
 	pub fn new() -> Self {
-		Self::default()
+		Self::with_capacity(optimal_number_of_threads(u16::MAX as usize))
 	}
 
-	pub fn with_capacity(capacity: u16) -> Self {
-		let mut _workers = Vec::with_capacity(capacity as usize);
+	/// Will return [`ThreadPool`] with user defined capacity
+	pub fn with_capacity(capacity: usize) -> Self {
+		let mut _workers = Vec::with_capacity(capacity);
 
 		let (sender, receiver) = mpsc::channel();
 
 		let receiver = Arc::new(Mutex::new(receiver));
 
-		for id in 0..capacity {
-			_workers.push(Worker::new(id, receiver.clone()));
+		for _ in 0..capacity {
+			_workers.push(Worker::new(receiver.clone()));
 		}
 
 		Self {
@@ -38,35 +42,41 @@ impl ThreadPool {
 		}
 	}
 
-	pub fn capacity(&self) -> u16 {
+	/// Returns [`ThreadPool`] capacity
+	#[inline]
+	pub fn capacity(&self) -> usize {
 		self.capacity
 	}
 
-	pub fn execute<T: Job>(&self, f: T) {
+	/// Executes passed function in
+	#[inline]
+	pub fn execute<F: FnOnce() + Send + 'static>(&self, f: F) {
 		self.sender.send(Task::New(Box::new(f))).unwrap()
+	}
+
+	/// Returns an iterator for capacity
+	#[inline]
+	pub fn iter(&self) -> std::ops::Range<usize> {
+		0..self.capacity
+	}
+
+	/// Does not actually call `join` on a thread
+	/// Instead breaks from internal loop
+	pub fn join(self) {
+		drop(self)
 	}
 }
 
 impl Drop for ThreadPool {
 	fn drop(&mut self) {
-		for _ in 0..self.capacity() {
-			self.sender.send(Task::Exit).unwrap()
+		for _ in self.iter() {
+			self.sender.send(Task::Break).unwrap()
 		}
 	}
 }
 
 impl Default for ThreadPool {
 	fn default() -> Self {
-		Self::with_capacity(optimal_number_of_threads(u16::MAX))
-	}
-}
-
-impl<'a> IntoIterator for &'a ThreadPool {
-	type Item = u16;
-
-	type IntoIter = std::ops::Range<u16>;
-
-	fn into_iter(self) -> Self::IntoIter {
-		0..self.capacity()
+		Self::new()
 	}
 }

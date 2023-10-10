@@ -3,44 +3,25 @@ use std::{
 	thread::{self, JoinHandle},
 };
 
-pub trait Job = FnOnce() + Send + 'static;
-pub type BoxedJob = Box<dyn Job>;
-
 pub enum Task {
-	New(BoxedJob),
-	Exit,
+	New(Box<dyn FnOnce() + Send>),
+	Break,
 }
 
-pub struct Worker {
-	id: u16,
-	handle: Option<JoinHandle<()>>,
-}
+#[derive(Debug)]
+pub(crate) struct Worker(JoinHandle<()>);
 
 impl Worker {
-	pub fn new(id: u16, receiver: Arc<Mutex<Receiver<Task>>>) -> Self {
+	pub fn new(receiver: Arc<Mutex<Receiver<Task>>>) -> Self {
 		let handle = thread::spawn(move || loop {
 			let task = { receiver.lock().unwrap().recv().unwrap() };
 
 			match task {
 				Task::New(job) => job(),
-				Task::Exit => break,
+				Task::Break => break,
 			}
 		});
 
-		Self {
-			id,
-			handle: Some(handle),
-		}
-	}
-}
-
-impl Drop for Worker {
-	fn drop(&mut self) {
-		self
-			.handle
-			.take()
-			.unwrap()
-			.join()
-			.unwrap_or_else(|_| panic!("Failed to join worker with ID: {}", self.id));
+		Self(handle)
 	}
 }
