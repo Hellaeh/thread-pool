@@ -24,6 +24,7 @@ pub const MAX_THREADS: usize = std::mem::size_of::<StateCell>() * 8;
 
 impl ThreadPool {
 	/// Will return [`ThreadPool`] with `capacity = logical-cores - 1`
+	/// all the threads will spawn immediately
 	#[inline]
 	pub fn new() -> Self {
 		Self::with_capacity(optimal_number_of_threads(u16::MAX as usize))
