@@ -45,21 +45,13 @@ impl Worker {
 
 					state.busy.remove(bit_id);
 				}
+
+				unsafe {
+					THREAD_LOCAL_PANIC_HOOK.unwrap().drop_in_place();
+				}
 			})
 			.expect(&format!("Failed to spawn Worker {id}"));
 
 		Self {}
-	}
-}
-
-impl Drop for Worker {
-	fn drop(&mut self) {
-		unsafe {
-			let Some(w) = THREAD_LOCAL_PANIC_HOOK.take() else {
-				return;
-			};
-
-			w.drop_in_place();
-		}
 	}
 }

@@ -9,6 +9,12 @@ fn graceful_shutdown() {
 	for i in 0..thread_pool.capacity() {
 		thread_pool.execute(move || assert_eq!(i, i));
 	}
+
+	thread_pool.join();
+
+	std::thread::sleep(Duration::from_secs(1));
+
+	assert!(false);
 }
 
 #[test]
